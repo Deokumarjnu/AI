@@ -13,15 +13,74 @@ An intelligent chatbot that allows users to query their PostgreSQL database usin
 
 ## Architecture
 
+### System Flow Diagram
+
+```mermaid
+flowchart TD
+    A["👤 User enters question<br/>in natural language"] --> B["🌐 React Frontend<br/>(App.tsx)"]
+    
+    B --> C["📡 HTTP POST to /chat<br/>localhost:4000/chat"]
+    
+    C --> D["🖥️ Express Backend<br/>(server.js)"]
+    
+    D --> E["🤖 OpenAI GPT-4<br/>translateQuestionToSQL()"]
+    
+    E --> F["📝 Generated SQL Query<br/>with schema validation"]
+    
+    F --> G["⚡ MCP Client<br/>executeSQLQuery()"]
+    
+    G --> H["🔗 PostgreSQL MCP Server<br/>Model Context Protocol"]
+    
+    H --> I["🗄️ PostgreSQL Database<br/>Education Management System"]
+    
+    I --> J["📊 Query Results<br/>Raw data returned"]
+    
+    J --> K["🤖 OpenAI GPT-4<br/>formatResponse()"]
+    
+    K --> L["💬 Natural Language Response<br/>User-friendly format"]
+    
+    L --> M["📤 JSON Response<br/>{response, sql, rawData}"]
+    
+    M --> N["🌐 React Frontend<br/>Display message"]
+    
+    N --> O["👤 User sees:<br/>• Formatted answer<br/>• SQL query<br/>• Timestamp"]
+    
+    %% Error handling paths
+    E -.-> P["❌ Invalid Query<br/>INVALID_QUERY"]
+    G -.-> Q["❌ Database Error<br/>Connection/Query failed"]
+    D -.-> R["❌ Server Error<br/>OpenAI API issues"]
+    
+    P --> S["🚨 Error Response<br/>User-friendly message"]
+    Q --> S
+    R --> S
+    S --> N
+    
+    %% Database schema info
+    T["📋 Database Schema<br/>• users<br/>• institutions<br/>• districts<br/>• courses<br/>• attendances<br/>• notifications<br/>• etc."] -.-> E
+    
+    %% Quick questions
+    U["💡 Quick Questions<br/>• List all districts<br/>• Show today's attendance<br/>• How many students?<br/>• Messaging activity"] -.-> A
+    
+    style A fill:#e1f5fe
+    style O fill:#e8f5e8
+    style I fill:#fff3e0
+    style E fill:#f3e5f5
+    style K fill:#f3e5f5
+    style S fill:#ffebee
 ```
-User Question → AI Agent (OpenAI) → SQL Query → MCP Server → Database → Results → AI Formatting → User
-```
+
+### Architecture Overview
 
 The application follows a hybrid approach:
 1. **AI Agent (OpenAI)** handles natural language processing and SQL generation
 2. **MCP Server** handles secure database execution
 3. **Express Backend** orchestrates the communication
 4. **React Frontend** provides the user interface
+
+### Data Flow Summary
+```
+User Question → AI Agent (OpenAI) → SQL Query → MCP Server → Database → Results → AI Formatting → User
+```
 
 ## Prerequisites
 
