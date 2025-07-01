@@ -113,6 +113,14 @@ Common Query Patterns:
 
 async function translateQuestionToSQL(question) {
   try {
+    // Check if this is a schema/modification question rather than a data query
+    const schemaKeywords = ['store', 'add column', 'create table', 'alter table', 'modify', 'additional field', 'new column'];
+    const isSchemaQuestion = schemaKeywords.some(keyword => question.toLowerCase().includes(keyword));
+    
+    if (isSchemaQuestion) {
+      return "SCHEMA_QUESTION";
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
@@ -123,17 +131,26 @@ async function translateQuestionToSQL(question) {
 Database Schema:
 ${DATABASE_SCHEMA}
 
-Rules:
-1. Only return the SQL query, no explanations
-2. Use proper PostgreSQL syntax
-3. If the question is unclear or not related to the database, return "INVALID_QUERY"
+CRITICAL RULES:
+1. ONLY return the SQL query - NO explanations, NO text before or after
+2. If you need to explain something, return "INVALID_QUERY" instead
+3. Use proper PostgreSQL syntax
 4. Always use safe queries (no DROP, DELETE without WHERE, etc.)
 5. Limit results to 100 rows if no limit specified
-6. For listing queries, prefer essential columns only (id, name, key identifiers) to avoid response truncation
-7. CRITICAL: NEVER join with daily_attendances table - it is EMPTY and will return zero results
-8. For ANY query asking about "present" or "attendance", use student_grades + terms tables ONLY
-9. NEVER use: JOIN daily_attendances da ON u.id = da.user_id
-10. ALWAYS use enrollment queries instead of attendance queries`
+6. For listing queries, prefer essential columns only (id, name, key identifiers)
+7. NEVER join with daily_attendances table - it is EMPTY
+8. For attendance queries, use student_grades + terms tables ONLY
+9. If the question asks about schema changes or table creation, return "INVALID_QUERY"
+
+VALID OUTPUT EXAMPLES:
+- SELECT COUNT(*) FROM users WHERE profile_type = 'Student';
+- SELECT name FROM districts LIMIT 100;
+- INVALID_QUERY
+
+INVALID OUTPUT EXAMPLES:
+- The table to store... (NO explanatory text)
+- Here is the SQL query: SELECT... (NO prefixes)
+- SELECT...; -- This query will... (NO comments)`
         },
         {
           role: "user",
@@ -141,10 +158,40 @@ Rules:
         }
       ],
       temperature: 0.1,
-      max_tokens: 200
+      max_tokens: 150
     });
 
-    const sqlQuery = response.choices[0].message.content.trim();
+    let sqlQuery = response.choices[0].message.content.trim();
+    
+    // Clean up the response - extract only the SQL query
+    if (sqlQuery.includes('```sql')) {
+      sqlQuery = sqlQuery.match(/```sql\n(.*?)\n```/s)?.[1]?.trim() || sqlQuery;
+    } else if (sqlQuery.includes('```')) {
+      sqlQuery = sqlQuery.match(/```\n?(.*?)\n?```/s)?.[1]?.trim() || sqlQuery;
+    }
+    
+    // Remove any leading explanatory text
+    const sqlKeywords = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'WITH', 'CREATE', 'ALTER'];
+    const lines = sqlQuery.split('\n');
+    let cleanQuery = '';
+    
+    for (let line of lines) {
+      const trimmedLine = line.trim();
+      if (sqlKeywords.some(keyword => trimmedLine.toUpperCase().startsWith(keyword))) {
+        // Found the start of SQL query
+        cleanQuery = lines.slice(lines.indexOf(line)).join('\n').trim();
+        break;
+      }
+    }
+    
+    if (cleanQuery) {
+      sqlQuery = cleanQuery;
+    }
+    
+    // Final validation
+    if (!sqlKeywords.some(keyword => sqlQuery.toUpperCase().trim().startsWith(keyword))) {
+      return "INVALID_QUERY";
+    }
     
     if (sqlQuery === "INVALID_QUERY") {
       throw new Error("I can only answer questions about your education database. Please ask about students, teachers, districts, institutions, attendance, interventions, notifications, or messaging data.");
@@ -249,6 +296,56 @@ Please explain these results in natural language.`
   }
 }
 
+async function handleSchemaQuestion(question) {
+  const questionLower = question.toLowerCase();
+  
+  if (questionLower.includes('phone') && questionLower.includes('parent')) {
+    return `**Storing Additional Phone Numbers for Parents**
+
+Based on your database schema, you have a \`users\` table with a \`phone\` field. Here are the best approaches to store additional phone numbers:
+
+**Option 1: Add Secondary Phone Column (Simplest)**
+\`\`\`sql
+-- Add the new column
+ALTER TABLE users ADD COLUMN secondary_phone VARCHAR(20);
+
+-- Add data for a specific parent
+UPDATE users 
+SET secondary_phone = '555-123-4567' 
+WHERE id = 123 AND profile_type = 'Parent';
+\`\`\`
+
+**Option 2: Create Phone Numbers Table (Most Flexible)**
+\`\`\`sql
+-- Create dedicated phone numbers table
+CREATE TABLE user_phone_numbers (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    phone_number VARCHAR(20) NOT NULL,
+    phone_type VARCHAR(20) DEFAULT 'mobile', -- 'home', 'work', 'mobile', 'emergency'
+    is_primary BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert additional phone numbers
+INSERT INTO user_phone_numbers (user_id, phone_number, phone_type) 
+VALUES (123, '555-123-4567', 'home');
+
+-- Query all phone numbers for a parent
+SELECT u.first_name, u.last_name, u.phone as primary_phone, 
+       upn.phone_number as additional_phone, upn.phone_type
+FROM users u
+LEFT JOIN user_phone_numbers upn ON u.id = upn.user_id
+WHERE u.profile_type = 'Parent' AND u.id = 123;
+\`\`\`
+
+**Recommendation:** Use Option 2 (separate table) for maximum flexibility. It allows multiple phone numbers per parent with labels like 'home', 'work', 'emergency', etc.`;
+  }
+  
+  return "I can help you with database queries about your education data. For schema modifications, please consult with your database administrator or provide more specific details about what you'd like to store.";
+}
+
 app.post('/chat', async (req, res) => {
   const { message } = req.body;
   
@@ -261,6 +358,20 @@ app.post('/chat', async (req, res) => {
     console.log('User question:', message);
     const sqlQuery = await translateQuestionToSQL(message);
     console.log('Generated SQL:', sqlQuery);
+
+    // Handle schema questions
+    if (sqlQuery === "SCHEMA_QUESTION") {
+      const schemaResponse = await handleSchemaQuestion(message);
+      console.log('Schema response:', schemaResponse);
+      
+      res.json({
+        success: true,
+        response: schemaResponse,
+        sql: null, // No SQL query for schema questions
+        rawData: null
+      });
+      return;
+    }
 
     // Step 2: Execute SQL via MCP server
     const sqlResult = await executeSQLQuery(sqlQuery);
