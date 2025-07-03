@@ -1,0 +1,34 @@
+{
+  "RoleName": "CrossAccountAccessRole",
+  "TrustPolicy": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": "arn:aws:iam::203180463038:root"
+        },
+        "Action": "sts:AssumeRole",
+        "Condition": {
+          "StringEquals": {
+            "sts:ExternalId": "cross-account-access"
+          }
+        }
+      }
+    ]
+  },
+  "Permissions": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "cloudformation:List*",
+          "cloudformation:Describe*",
+          "cloudformation:Get*"
+        ],
+        "Resource": "*"
+      }
+    ]
+  }
+} 

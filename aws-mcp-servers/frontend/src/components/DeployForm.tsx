@@ -30,50 +30,35 @@ const DeployForm: React.FC<DeployFormProps> = ({ selectedEnvironment, selectedSt
       
       <div className="space-y-4 mb-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Stack Name
-          </label>
-          <input
-            type="text"
-            value={selectedStack}
-            disabled
-            className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 text-sm"
-          />
+          <span className="break-words">Stack: <span className="font-medium text-gray-900">{selectedStack}</span></span>
+          {selectedEnvironment && (
+            <span>Environment: <span className="font-medium text-gray-900">{selectedEnvironment}</span></span>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Git Branch/Tag
           </label>
-          <input
-            type="text"
-            value={branch}
-            onChange={(e) => setBranch(e.target.value)}
-            placeholder="Enter branch or tag name"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-          />
-        </div>
-      </div>
-      
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        <button
-          onClick={handleDeploy}
-          disabled={isDeploying || !branch.trim()}
-          className={`w-full sm:w-auto px-6 py-2 rounded-md font-medium transition-colors text-sm ${
-            isDeploying || !branch.trim()
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}
-        >
-          {isDeploying ? 'Updating Stack...' : 'Update Stack'}
-        </button>
-      </div>
-      
-      <div className="mt-3 text-sm text-gray-600">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-          <span className="break-words">Stack: <span className="font-medium text-gray-900">{selectedStack}</span></span>
-          {selectedEnvironment && (
-            <span>Environment: <span className="font-medium text-gray-900">{selectedEnvironment}</span></span>
-          )}
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+              placeholder="Enter branch or tag name"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+            <button
+              onClick={handleDeploy}
+              disabled={isDeploying || !branch.trim()}
+              className={`px-6 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap ${
+                isDeploying || !branch.trim()
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {isDeploying ? 'Deploying Stack...' : 'Deploy Stack'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

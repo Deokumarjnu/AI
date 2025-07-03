@@ -10,20 +10,32 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@aws-sdk/client-api-gateway": "^3.840.0",
     "@aws-sdk/client-cloudformation": "^3.600.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.840.0",
+    "@aws-sdk/client-cost-explorer": "^3.840.0",
+    "@aws-sdk/client-organizations": "^3.840.0",
     "@aws-sdk/client-sts": "^3.600.0",
     "@aws-sdk/credential-providers": "^3.600.0",
-    "express": "^4.18.2",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+     "@aws-sdk/client-ec2": "^3.841.0",
+    "@aws-sdk/client-ecs": "^3.840.0",
+    "@aws-sdk/client-rds": "^3.841.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "helmet": "^7.1.0",
     "morgan": "^1.10.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
-  "keywords": ["aws", "mcp", "cloudformation", "server"],
+  "keywords": [
+    "aws",
+    "mcp",
+    "cloudformation",
+    "server"
+  ],
   "author": "",
   "license": "ISC"
-} 
+}

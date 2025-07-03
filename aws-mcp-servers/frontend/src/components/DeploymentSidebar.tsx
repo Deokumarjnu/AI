@@ -35,58 +35,62 @@ const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
     company: 'AWS'
   });
 
-  // Fetch AWS accounts and stacks
+    // Fetch AWS accounts and stacks
   useEffect(() => {
     const fetchAwsData = async () => {
       try {
         setLoading(true);
         
-        // Fetch AWS identity and stacks
-        const [identityResponse, stacksResponse] = await Promise.all([
-          fetch('http://localhost:3002/api/aws/identity'),
-          fetch('http://localhost:3002/api/aws/stacks')
-        ]);
+        // Fetch user identity for user info
+        const identityResponse = await fetch('http://localhost:3002/api/aws/identity');
+        const identity = await identityResponse.json();
 
-                 const identity = await identityResponse.json();
-         const stacksData = await stacksResponse.json();
+        // Extract user information from AWS identity
+        if (identity.identity?.Arn) {
+          const arnParts = identity.identity.Arn.split('/');
+          const userEmail = arnParts[arnParts.length - 1]; // Gets "Deo.Kumar@powerschool.com"
+          
+          if (userEmail.includes('@')) {
+            const [namePart, domain] = userEmail.split('@');
+            const userName = namePart.replace('.', ' '); // "Deo.Kumar" -> "Deo Kumar"
+            const company = domain.split('.')[0]; // "powerschool.com" -> "powerschool"
+            const companyName = company.charAt(0).toUpperCase() + company.slice(1); // "PowerSchool"
+            
+            setUserInfo({
+              name: userName,
+              company: companyName
+            });
+          }
+        }
 
-         // Extract user information from AWS identity
-         if (identity.identity?.Arn) {
-           const arnParts = identity.identity.Arn.split('/');
-           const userEmail = arnParts[arnParts.length - 1]; // Gets "Deo.Kumar@powerschool.com"
-           
-           if (userEmail.includes('@')) {
-             const [namePart, domain] = userEmail.split('@');
-             const userName = namePart.replace('.', ' '); // "Deo.Kumar" -> "Deo Kumar"
-             const company = domain.split('.')[0]; // "powerschool.com" -> "powerschool"
-             const companyName = company.charAt(0).toUpperCase() + company.slice(1); // "PowerSchool"
-             
-             setUserInfo({
-               name: userName,
-               company: companyName
-             });
-           }
-         }
+        // Fetch all configured accounts
+        const accountsResponse = await fetch('http://localhost:3002/api/aws/accounts');
+        const accountsData = await accountsResponse.json();
 
-         // Create account structure
-         const account: AwsAccount = {
-           id: identity.identity?.Account || 'unknown',
-           name: identity.identity?.Arn ? identity.identity.Arn.split(':')[4] : 'AWS Account',
-           stacks: (stacksData.stacks || []).map((stack: any) => ({
-             name: stack.StackName,
-             status: stack.StackStatus,
-             creationTime: stack.CreationTime
-           }))
-         };
+        if (accountsData.success && accountsData.accounts) {
+          const accounts: AwsAccount[] = accountsData.accounts.map((account: any) => ({
+            id: account.id,
+            name: account.name,
+            stacks: (account.stacks || []).map((stack: any) => ({
+              name: stack.StackName,
+              status: stack.StackStatus,
+              creationTime: stack.CreationTime
+            }))
+          }));
 
-        setAwsAccounts([account]);
-        
-        // Auto-expand the first account
-        setExpandedAccounts({ [account.id]: true });
-        
-        // Auto-select first stack if available
-        if (account.stacks.length > 0 && !selectedStack) {
-          onStackSelect(account.stacks[0].name);
+          setAwsAccounts(accounts);
+          
+          // Auto-expand all accounts
+          const expandedState: {[key: string]: boolean} = {};
+          accounts.forEach(account => {
+            expandedState[account.id] = true;
+          });
+          setExpandedAccounts(expandedState);
+          
+          // Auto-select first stack from first account if available
+          if (accounts.length > 0 && accounts[0].stacks.length > 0 && !selectedStack) {
+            onStackSelect(accounts[0].stacks[0].name);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch AWS data:', error);
@@ -124,12 +128,30 @@ const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
     return 'bg-gray-500';
   };
 
-  const filteredAccounts = awsAccounts.map(account => ({
-    ...account,
-    stacks: account.stacks.filter(stack => 
-      stack && stack.name && stack.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  }));
+  const filteredAccounts = awsAccounts.reduce<AwsAccount[]>((acc, account) => {
+    const query = searchQuery.toLowerCase();
+    
+    // Check if account matches search
+    const accountMatches = !query || 
+      account.id.toLowerCase().includes(query) ||
+      account.name.toLowerCase().includes(query);
+    
+    // Filter stacks that match search
+    const filteredStacks = account.stacks.filter(stack => {
+      if (!stack || !stack.name) return false;
+      return !query || stack.name.toLowerCase().includes(query);
+    });
+    
+    // Show account if either account matches OR has matching stacks
+    if (accountMatches || filteredStacks.length > 0) {
+      acc.push({
+        ...account,
+        stacks: accountMatches ? account.stacks : filteredStacks
+      });
+    }
+    
+    return acc;
+  }, []);
 
   return (
     <div className="w-[400px] min-w-[400px] max-w-[400px] bg-black text-white flex flex-col overflow-hidden">
@@ -155,18 +177,40 @@ const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
 
       {/* Search Bar */}
       <div className="p-4 border-b border-gray-800">
-        <input
-          type="text"
-          placeholder="Search stacks..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search accounts or stacks..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-3 py-2 pr-8 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <div className="mt-2 text-xs text-gray-400">
+            Searching for: "{searchQuery}"
+          </div>
+        )}
       </div>
 
       {/* AWS Accounts & CloudFormation Stacks */}
       <div className="flex-1 overflow-y-auto">
         <nav className="p-2">
+          {/* AWS Account Header */}
+          <div className="mb-4">
+            <div className="px-3 py-2 text-gray-400 text-xs font-medium uppercase tracking-wider">
+              AWS Accounts
+            </div>
+          </div>
+
           {loading ? (
             <div className="text-center text-gray-400 py-4">
               Loading AWS data...
@@ -178,21 +222,29 @@ const DeploymentSidebar: React.FC<DeploymentSidebarProps> = ({
                   onClick={() => toggleAccount(account.id)}
                   className="w-full flex items-center justify-between px-3 py-2 text-left text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
                 >
-                  <div>
-                    <span className="font-medium">AWS Account</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{account.name}</div>
                     <div className="text-xs text-gray-500">{account.id}</div>
                   </div>
-                  {expandedAccounts[account.id] ? (
-                    <ChevronDownIcon className="w-4 h-4" />
-                  ) : (
-                    <ChevronRightIcon className="w-4 h-4" />
-                  )}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs bg-gray-700 px-2 py-1 rounded">
+                      {account.stacks.length} stacks
+                    </span>
+                    {expandedAccounts[account.id] ? (
+                      <ChevronDownIcon className="w-4 h-4" />
+                    ) : (
+                      <ChevronRightIcon className="w-4 h-4" />
+                    )}
+                  </div>
                 </button>
 
                 {expandedAccounts[account.id] && (
-                  <div className="ml-4 mt-1 space-y-1">
-                    <div className="px-3 py-1 text-xs text-gray-500 font-medium">
-                      CloudFormation Stacks ({account.stacks.length})
+                  <div className="ml-4 mt-2 space-y-1">
+                    <div className="px-3 py-1 text-xs text-gray-500 font-medium border-b border-gray-700 pb-2 mb-2">
+                      CloudFormation Stacks
+                      {searchQuery && account.stacks.length === 0 && (
+                        <span className="text-gray-600 ml-1">(no matches)</span>
+                      )}
                     </div>
                     {account.stacks.map((stack) => (
                       <button

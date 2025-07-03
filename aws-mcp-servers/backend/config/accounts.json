@@ -1,0 +1,19 @@
+{
+  "accounts": {
+    "203180463038": {
+      "name": "KinvolvedPreProd",
+      "environment": "pre-production",
+      "region": "us-east-1",
+      "description": "Kinvolved Pre-Production Environment",
+      "profile": "203180463038"
+    },
+    "759685402417": {
+      "name": "aws-powerschool-messenger-preprodus",
+      "environment": "pre-production",
+      "region": "us-east-1",
+      "description": "messenger AWS Account",
+      "profile": "759685402417"
+    }
+  },
+  "defaultName": "AWS Account"
+} 
