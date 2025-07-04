@@ -4,7 +4,7 @@
 
 **AWS Account IDs are 12-digit numbers** like `203180463038`.
 
-The identifier `ASIA3BYGHJ4Y7NOK6LLO` looks like an **AWS Access Key ID**, not an account ID. 
+The identifier `AWS Access Key ID` looks like an **AWS Access Key ID**, not an account ID. 
 
 ## 📋 Step 1: Get the Correct Account ID
 
@@ -24,17 +24,19 @@ Edit `backend/config/accounts.json`:
 ```json
 {
   "accounts": {
-    "203180463038": {
-      "name": "KinvolvedPreProd",
+    "xxxxxxxxxxxx": {
+      "name": "preprod",
       "environment": "pre-production",
       "region": "us-east-1",
-      "description": "Kinvolved Pre-Production Environment"
+      "description": "test Pre-Production Environment",
+      "profile": "xxxxxxxxxxxx"
     },
-    "123456789012": {
-      "name": "YourSecondAccount",
-      "environment": "production",
+    "xxxxxxxxxxxx1": {
+      "name": "test",
+      "environment": "pre-production",
       "region": "us-east-1",
-      "description": "Replace with actual 12-digit account ID"
+      "description": "test aws Account",
+      "profile": "xxxxxxxxxxxx1"
     }
   },
   "defaultName": "AWS Account"
@@ -125,18 +127,18 @@ npm run dev
 
 ## 🛠️ Step 5: Update Your Configuration
 
-**Replace `ASIA3BYGHJ4Y7NOK6LLO` with the actual 12-digit account ID**:
+**Replace `AWS Access Key ID` with the actual 12-digit account ID**:
 
 ```json
 {
   "accounts": {
     "203180463038": {
-      "name": "KinvolvedPreProd",
+      "name": "test1",
       "environment": "pre-production",
       "region": "us-east-1"
     },
     "YOUR_ACTUAL_ACCOUNT_ID": {
-      "name": "SecondaryAccount",
+      "name": "test2",
       "environment": "production",
       "region": "us-east-1",
       "description": "Your second AWS account"
@@ -171,7 +173,7 @@ Once configured correctly, you'll see:
 ```
 AWS ACCOUNTS
 
-✓ KinvolvedPreProd (203180463038) [20 stacks]
+✓ test1 (xxxxxxxxxxx) [20 stacks]
   └── CloudFormation Stacks
       ├── stack-1
       ├── stack-2
@@ -190,8 +192,8 @@ AWS ACCOUNTS
   "success": true,
   "accounts": [
     {
-      "id": "203180463038",
-      "name": "KinvolvedPreProd",
+      "id": "xxxxxxxxxxxx",
+      "name": "test",
       "stackCount": 20,
       "accessible": true
     },

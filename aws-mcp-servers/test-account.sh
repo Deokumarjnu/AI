@@ -10,7 +10,7 @@ echo ""
 
 # If you have the access key for the secondary account
 echo "Option 2: Use temporary credentials"
-echo "AWS_ACCESS_KEY_ID=ASIA3BYGHJ4Y7NOK6LLO AWS_SECRET_ACCESS_KEY=your_secret aws sts get-caller-identity"
+echo "AWS_ACCESS_KEY_ID=aws_access_key_id AWS_SECRET_ACCESS_KEY=your_secret aws sts get-caller-identity"
 echo ""
 
 # Test current account

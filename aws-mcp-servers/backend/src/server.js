@@ -82,29 +82,11 @@ app.get('/api/aws/identity', async (req, res) => {
 app.get('/api/aws/accounts', async (req, res) => {
   try {
     if (!awsInitialized) {
-      // Demo mode
-      const demoData = {
-        success: true,
-        accounts: [
-          {
-            id: '203180463038',
-            name: 'KinvolvedPreProd',
-            environment: 'pre-production',
-            region: 'us-east-1',
-            stackCount: 20,
-            accessible: true,
-            stacks: [
-              {
-                StackName: 'demo-webapp-stack',
-                StackStatus: 'CREATE_COMPLETE',
-                CreationTime: '2024-01-01T10:00:00Z'
-              }
-            ]
-          }
-        ],
-        demoMode: true
-      };
-      return res.json(demoData);
+      return res.status(503).json({
+        success: false,
+        error: 'AWS service not connected',
+        message: 'AWS service is not available. Check your credentials and try again.'
+      });
     }
 
     console.log('🏢 Fetching all configured AWS accounts...');

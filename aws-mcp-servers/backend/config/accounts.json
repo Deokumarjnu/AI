@@ -1,18 +1,18 @@
 {
   "accounts": {
-    "203180463038": {
-      "name": "KinvolvedPreProd",
+    "xxxxxxxxxxxx": {
+      "name": "preprod",
       "environment": "pre-production",
       "region": "us-east-1",
-      "description": "Kinvolved Pre-Production Environment",
-      "profile": "203180463038"
+      "description": "test Pre-Production Environment",
+      "profile": "xxxxxxxxxxxx"
     },
-    "759685402417": {
-      "name": "aws-powerschool-messenger-preprodus",
+    "xxxxxxxxxxxx1": {
+      "name": "test",
       "environment": "pre-production",
       "region": "us-east-1",
-      "description": "messenger AWS Account",
-      "profile": "759685402417"
+      "description": "test aws Account",
+      "profile": "xxxxxxxxxxxx1"
     }
   },
   "defaultName": "AWS Account"
